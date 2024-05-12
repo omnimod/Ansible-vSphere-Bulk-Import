@@ -1,0 +1,137 @@
+---
+- name: Create a VM from a template
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+  - ./vars-deploy-vms.yaml
+
+  tasks:
+  - name: Read CSV
+    read_csv:
+      path: "{{ input_file }}"
+    register: csv
+
+  - name: Display CSV input variables
+    debug:
+      msg: "{{ csv }}"
+    when: debug == True
+
+  - name: Create VMs List
+    set_fact:
+      vms: |-
+          [
+          {% for vm in csv.list %}
+            {
+              "hostname": "{{ vsphere_url }}",
+              "username": "{{ vsphere_login }}",
+              "password": "{{ vsphere_password }}",
+              "validate_certs": {{ validate_certs }},
+              "name": "{{ vm.vmname }}",
+              "template":                   "{{ ((vm.template is defined)         and (vm.template != ''))         | ternary(vm.template, default_vm_template) }}",
+              "datacenter":                 "{{ ((vm.datacenter is defined)       and (vm.datacenter != ''))       | ternary(vm.datacenter,default_vm_datacenter) }}",
+              "cluster":                    "{{ ((vm.cluster is defined)          and (vm.cluster != ''))          | ternary(vm.cluster, default_vm_cluster) }}",
+              "resource_pool":              "{{ ((vm.resource_pool is defined)    and (vm.resource_pool != ''))    | ternary(vm.resource_pool, default_vm_resource_pool) }}",
+              "folder":                     "{{ ((vm.folder is defined)           and (vm.folder != ''))           | ternary(vm.folder, default_vm_folder) }}",
+              "hardware":
+              {
+                "num_cpus":                 "{{ ((vm.vcpus is defined)            and (vm.vcpus != ''))            | ternary(vm.vcpus, default_vcpus) }}",
+                "num_cpu_cores_per_socket": "{{ ((vm.cores_per_socket is defined) and (vm.cores_per_socket != '')) | ternary(vm.cores_per_socket, default_cores_per_socket) }}",
+                "memory_mb":                "{{ ((vm.memory is defined)           and (vm.memory != ''))           | ternary(vm.memory, default_memory) }}"
+              },
+              "customization":
+              {
+                "password":                 "{{ ((vm.password is defined)         and (vm.password != ''))         | ternary(vm.password, default_vm_password) }}",
+                "dns_servers":              "{{ ((vm.dns_servers is defined)      and (vm.dns_servers != ''))      | ternary(vm.dns_servers.replace(' ','').split(','), omit) }}"
+              },
+              "state":                      "{{ ((vm.state is defined)            and (vm.state != ''))            | ternary(vm.state, default_vm_state) }}",              
+              "disk":
+                {% set list = [] %}
+                {% for dsk in (vm | dict2items | selectattr('key', 'match', '^disk[0-9]') ) %}  
+                  {% set _ = list.append({'name': dsk.key.split('.')[0], 'key': dsk.key.split('.')[1], 'value': dsk.value}) %}
+                {% endfor %}
+                {% set grouped_list = [] %}
+                {% for name, items in list | groupby('name') %}
+                  {% set param_list = {} %}
+                  {% for item in items %}
+                    {% set _ = param_list.update({ item.key:item.value }) %}
+                  {% endfor %}
+                  {% set _ = grouped_list.append( param_list ) %}
+                {% endfor %}
+                {% set filtered_list = [] %}
+                {% for dsk in grouped_list %}
+                  {% if dsk.size_gb %}
+                    {% if (dsk.type is not defined) or (dsk.type == "") %}
+                      {% set _ = dsk.update({ "type": default_disk_type }) %}
+                    {% endif %}
+                    {% if (dsk.datastore is not defined) or (dsk.datastore == "") %}
+                      {% set _ = dsk.update({ "datastore": default_datastore }) %}  
+                    {% endif %}
+                    {% set _ = filtered_list.append(dsk) %}
+                  {% endif %}
+                {% endfor %}
+                {{ filtered_list }},
+              "networks":
+                {% set list = [] %}
+                {% for ntwk in (vm | dict2items | selectattr('key', 'match', '^network[0-9]') ) %}  
+                  {% set _ = list.append({'name': ntwk.key.split('.')[0], 'key': ntwk.key.split('.')[1], 'value': ntwk.value}) %}
+                {% endfor %}
+                {% set grouped_list = [] %}
+                {% for name, items in list | groupby('name') %}
+                  {% set param_list = {} %}
+                  {% for item in items %}
+                    {% set _ = param_list.update({ item.key:item.value }) %}
+                  {% endfor %}
+                  {% set _ = grouped_list.append( param_list ) %}
+                {% endfor %}
+                {% set filtered_list = [] %}
+                {% for ntwk in grouped_list %}
+                  {% if ntwk.name %}
+                    {% if (ntwk.netmask is not defined) or (ntwk.netmask == "") %}
+                      {% set _ = ntwk.update({ "netmask": default_network_netmask }) %}
+                    {% endif %}
+                    {% if (ntwk.gateway is not defined) or (ntwk.gateway == "") %}
+                      {% set _ = ntwk.update({ "gateway": default_network_gateway }) %}
+                    {% endif %}
+                    {% if (ntwk.dns_servers is not defined) or (ntwk.dns_servers == "")  %}
+                      {% set _ = ntwk.update({ "dns_servers": default_vm_dns_servers }) %}
+                    {% else %}
+                      {% set dns_list = ntwk.dns_servers.split(',') %}
+                      {% set _ = ntwk.update({ "dns_servers": dns_list }) %}
+                    {% endif %}
+                    {% if (ntwk.domain is not defined) or (ntwk.domain == "") %}
+                      {% set _ = ntwk.update({ "domain": default_network_domain }) %}
+                    {% endif %}
+                    {% if (ntwk.ip is not defined) %}
+                      {% set _ = ntwk.update({ "ip": "" }) %}  
+                    {% endif %}
+                    {% if (ntwk.ip == "") %}
+                      {% set _ = ntwk.pop("ip") %}
+                      {% set _ = ntwk.pop("netmask") %}
+                      {% set _ = ntwk.pop("gateway") %}
+                      {% set _ = ntwk.pop("domain") %}
+                      {% set _ = ntwk.pop("dns_servers") %}
+                    {% endif %}
+                    {% set _ = filtered_list.append(ntwk) %}
+                  {% endif %}
+                {% endfor %}
+                {{ filtered_list }},
+              "wait_for_ip_address": "yes"
+            },
+          {% endfor %}
+          ]
+
+  - name: Display updated VMs input
+    debug:
+      msg: "{{ vms }}"
+    when: debug == True
+
+  - name: Deploy VM
+    vmware_guest: "{{ item }}"
+    register: deployed_vms
+    loop: "{{ vms }}"
+
+  - name: Display Deployed VMs parameters
+    debug:
+      msg: "{{ deployed_vms }}"
+    when: debug == True

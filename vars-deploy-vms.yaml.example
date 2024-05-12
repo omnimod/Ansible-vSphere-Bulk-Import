@@ -1,0 +1,24 @@
+vsphere_url: "vc.lab.internal"
+vsphere_login: "administrator@vsphere.local"
+vsphere_password: "P@ssw0rd"
+validate_certs: False
+debug: True
+input_file: "vms.csv"
+default_vm_template: "ubuntu-server-2004"
+default_vm_cluster: "Cluster"
+default_vm_resource_pool: "test"
+default_vm_folder: "test"
+default_vm_datacenter: "Datacenter"
+default_vcpus: 2
+default_cores_per_socket: 1
+default_memory: 4096
+default_disk_size: 40
+default_disk_type: "thin"
+default_datastore: "datastore0"
+default_network_netmask: "255.255.255.0"
+default_network_gateway: "192.168.1.1"
+default_network_domain: "lab.internal"
+default_vm_password: "P@ssw0rd"
+default_vm_state: "poweredon"
+default_vm_dns_servers:
+- 192.168.1.3

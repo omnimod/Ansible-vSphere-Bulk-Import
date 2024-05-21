@@ -4,21 +4,19 @@ vsphere_password: "P@ssw0rd"
 validate_certs: False
 debug: True
 input_file: "vms.csv"
-default_vm_template: "ubuntu-server-2004"
-default_vm_cluster: "Cluster"
-default_vm_resource_pool: "test"
-default_vm_folder: "test"
-default_vm_datacenter: "Datacenter"
-default_vcpus: 2
-default_cores_per_socket: 1
-default_memory: 4096
-default_disk_size: 40
-default_disk_type: "thin"
-default_datastore: "datastore0"
-default_network_netmask: "255.255.255.0"
-default_network_gateway: "192.168.1.1"
-default_network_domain: "lab.internal"
-default_vm_password: "P@ssw0rd"
-default_vm_state: "poweredon"
-default_vm_dns_servers:
+def_vm_template: "ubuntu-server-2004"
+def_vm_cluster: "cluster01"
+def_vm_resource_pool: "pool01"
+def_vm_folder: "folder01"
+def_vm_datacenter: "Datacenter"
+def_disk_type: "thin"
+def_disk_mode: "persistent"
+def_datastore: "datastore0"
+def_network_netmask: "255.255.255.0"
+def_network_gateway: "192.168.1.1"
+def_network_domain: "lab.internal"
+def_vm_password: "P@ssw0rd"
+def_vm_state: "poweredon"
+def_wait_for_ip_address: "yes"
+def_network_dns_servers:
 - 192.168.1.3

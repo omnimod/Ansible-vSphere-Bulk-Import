@@ -23,28 +23,45 @@
           [
           {% for vm in csv.list %}
             {
-              "hostname": "{{ vsphere_url }}",
-              "username": "{{ vsphere_login }}",
-              "password": "{{ vsphere_password }}",
-              "validate_certs": {{ validate_certs }},
-              "name": "{{ vm.vmname }}",
-              "template":                   "{{ ((vm.template is defined)         and (vm.template != ''))         | ternary(vm.template, default_vm_template) }}",
-              "datacenter":                 "{{ ((vm.datacenter is defined)       and (vm.datacenter != ''))       | ternary(vm.datacenter,default_vm_datacenter) }}",
-              "cluster":                    "{{ ((vm.cluster is defined)          and (vm.cluster != ''))          | ternary(vm.cluster, default_vm_cluster) }}",
-              "resource_pool":              "{{ ((vm.resource_pool is defined)    and (vm.resource_pool != ''))    | ternary(vm.resource_pool, default_vm_resource_pool) }}",
-              "folder":                     "{{ ((vm.folder is defined)           and (vm.folder != ''))           | ternary(vm.folder, default_vm_folder) }}",
-              "hardware":
-              {
-                "num_cpus":                 "{{ ((vm.vcpus is defined)            and (vm.vcpus != ''))            | ternary(vm.vcpus, default_vcpus) }}",
-                "num_cpu_cores_per_socket": "{{ ((vm.cores_per_socket is defined) and (vm.cores_per_socket != '')) | ternary(vm.cores_per_socket, default_cores_per_socket) }}",
-                "memory_mb":                "{{ ((vm.memory is defined)           and (vm.memory != ''))           | ternary(vm.memory, default_memory) }}"
-              },
+              "hostname":                   "{{ vsphere_url }}",
+              "password":                   "{{ vsphere_password }}",
+              "username":                   "{{ vsphere_login }}",
+              "validate_certs":             "{{ validate_certs }}",
+              "cluster":                    "{{ ((vm.cluster is defined)                  and (vm.cluster != ''))                  | ternary(vm.cluster, def_vm_cluster) }}",
               "customization":
               {
-                "password":                 "{{ ((vm.password is defined)         and (vm.password != ''))         | ternary(vm.password, default_vm_password) }}",
-                "dns_servers":              "{{ ((vm.dns_servers is defined)      and (vm.dns_servers != ''))      | ternary(vm.dns_servers.replace(' ','').split(','), omit) }}"
+                "domainadmin":              "{{ ((vm.domainadmin is defined)              and (vm.domainadmin != ''))              | ternary(vm.domainadmin, omit) }}",
+                "domainadminpassword":      "{{ ((vm.domainadminpassword is defined)      and (vm.domainadminpassword != ''))      | ternary(vm.domainadminpassword, omit) }}",
+                "dns_servers":
+                {% if vm.dns_servers is not none %}
+                  {% set dns_list = [] %}
+                  {% for dns_entry in (vm.dns_servers.replace(' ','').split(',')) %}
+                    {% set dns_list = dns_list.append(dns_entry) %}
+                  {% endfor %}
+                  {{ dns_list }}
+                {% else %}
+                  "{{ omit }}"
+                {% endif %},
+                "dns_suffix":               "{{ ((vm.dns_suffix is defined)               and (vm.dns_suffix != ''))               | ternary(vm.dns_suffix, omit) }}",
+                "joindomain":               "{{ ((vm.joindomain is defined)               and (vm.joindomain != ''))               | ternary(vm.joindomain, omit) }}",
+                "orgname":                  "{{ ((vm.orgname is defined)                  and (vm.orgname != ''))                  | ternary(vm.orgname, omit) }}",
+                "password":                 "{{ ((vm.password is defined)                 and (vm.password != ''))                 | ternary(vm.password, def_vm_password) }}",
+                "timezone":                 "{{ ((vm.timezone is defined)                 and (vm.timezone != ''))                 | ternary(vm.timezone, omit) }}"
               },
-              "state":                      "{{ ((vm.state is defined)            and (vm.state != ''))            | ternary(vm.state, default_vm_state) }}",              
+              "datacenter":                 "{{ ((vm.datacenter is defined)               and (vm.datacenter != ''))               | ternary(vm.datacenter,def_vm_datacenter) }}",
+              "folder":                     "{{ ((vm.folder is defined)                   and (vm.folder != ''))                   | ternary(vm.folder, def_vm_folder) }}",
+              "hardware":
+              {
+                "memory_mb":                "{{ ((vm.memory_mb is defined)                and (vm.memory_mb != ''))                | ternary(vm.memory_mb, omit) }}",
+                "num_cpus":                 "{{ ((vm.num_cpus is defined)                 and (vm.num_cpus != ''))                 | ternary(vm.num_cpus, omit) }}",
+                "num_cpu_cores_per_socket": "{{ ((vm.num_cpu_cores_per_socket is defined) and (vm.num_cpu_cores_per_socket != '')) | ternary(vm.num_cpu_cores_per_socket, omit) }}",
+                "secure_boot":              "{{ ((vm.secure_boot is defined)              and (vm.secure_boot != ''))              | ternary(vm.secure_boot, omit) }}"
+              },
+              "name":                       "{{ vm.name }}",
+              "resource_pool":              "{{ ((vm.resource_pool is defined)            and (vm.resource_pool != ''))            | ternary(vm.resource_pool, def_vm_resource_pool) }}",
+              "state":                      "{{ ((vm.state is defined)                    and (vm.state != ''))                    | ternary(vm.state, def_vm_state) }}",
+              "template":                   "{{ ((vm.template is defined)                 and (vm.template != ''))                 | ternary(vm.template, def_vm_template) }}",
+              "wait_for_ip_address":        "{{ ((vm.wait_for_ip_address is defined)      and (vm.wait_for_ip_address != ''))      | ternary(vm.wait_for_ip_address, def_wait_for_ip_address) }}",
               "disk":
                 {% set list = [] %}
                 {% for dsk in (vm | dict2items | selectattr('key', 'match', '^disk[0-9]') ) %}  
@@ -62,10 +79,13 @@
                 {% for dsk in grouped_list %}
                   {% if dsk.size_gb %}
                     {% if (dsk.type is not defined) or (dsk.type == "") %}
-                      {% set _ = dsk.update({ "type": default_disk_type }) %}
+                      {% set _ = dsk.update({ "type": def_disk_type }) %}
+                    {% endif %}
+                    {% if (dsk.disk_mode is not defined) or (dsk.disk_mode == "") %}
+                      {% set _ = dsk.update({ "disk_mode": def_disk_mode }) %}
                     {% endif %}
                     {% if (dsk.datastore is not defined) or (dsk.datastore == "") %}
-                      {% set _ = dsk.update({ "datastore": default_datastore }) %}  
+                      {% set _ = dsk.update({ "datastore": def_datastore }) %}  
                     {% endif %}
                     {% set _ = filtered_list.append(dsk) %}
                   {% endif %}
@@ -88,19 +108,19 @@
                 {% for ntwk in grouped_list %}
                   {% if ntwk.name %}
                     {% if (ntwk.netmask is not defined) or (ntwk.netmask == "") %}
-                      {% set _ = ntwk.update({ "netmask": default_network_netmask }) %}
+                      {% set _ = ntwk.update({ "netmask": def_network_netmask }) %}
                     {% endif %}
                     {% if (ntwk.gateway is not defined) or (ntwk.gateway == "") %}
-                      {% set _ = ntwk.update({ "gateway": default_network_gateway }) %}
+                      {% set _ = ntwk.update({ "gateway": def_network_gateway }) %}
                     {% endif %}
                     {% if (ntwk.dns_servers is not defined) or (ntwk.dns_servers == "")  %}
-                      {% set _ = ntwk.update({ "dns_servers": default_vm_dns_servers }) %}
+                      {% set _ = ntwk.update({ "dns_servers": def_network_dns_servers }) %}
                     {% else %}
                       {% set dns_list = ntwk.dns_servers.split(',') %}
                       {% set _ = ntwk.update({ "dns_servers": dns_list }) %}
                     {% endif %}
                     {% if (ntwk.domain is not defined) or (ntwk.domain == "") %}
-                      {% set _ = ntwk.update({ "domain": default_network_domain }) %}
+                      {% set _ = ntwk.update({ "domain": def_network_domain }) %}
                     {% endif %}
                     {% if (ntwk.ip is not defined) %}
                       {% set _ = ntwk.update({ "ip": "" }) %}  
@@ -115,8 +135,7 @@
                     {% set _ = filtered_list.append(ntwk) %}
                   {% endif %}
                 {% endfor %}
-                {{ filtered_list }},
-              "wait_for_ip_address": "yes"
+                {{ filtered_list }}
             },
           {% endfor %}
           ]
@@ -126,7 +145,7 @@
       msg: "{{ vms }}"
     when: debug == True
 
-  - name: Deploy VM
+  - name: Deploy VMs on vSphere
     vmware_guest: "{{ item }}"
     register: deployed_vms
     loop: "{{ vms }}"

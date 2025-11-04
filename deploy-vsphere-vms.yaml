@@ -7,7 +7,7 @@
   - ./vars-deploy-vms.yaml
 
   tasks:
-  - name: Read CSV
+  - name: Read CSV file
     read_csv:
       path: "{{ input_file }}"
     register: csv
@@ -145,12 +145,8 @@
       msg: "{{ vms }}"
     when: debug == True
 
-  - name: Deploy VMs on vSphere
-    vmware_guest: "{{ item }}"
-    register: deployed_vms
-    loop: "{{ vms }}"
-
-  - name: Display Deployed VMs parameters
-    debug:
-      msg: "{{ deployed_vms }}"
-    when: debug == True
+  - name: Prepare batches for async deploy
+    vars:
+      batch: "{{ item }}"
+    include_tasks: run-vsphere-batch.yaml
+    loop: "{{ vms | batch(batch_size) | list }}"

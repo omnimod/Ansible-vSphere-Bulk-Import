@@ -2,7 +2,12 @@ vsphere_url: "vc.lab.internal"
 vsphere_login: "administrator@vsphere.local"
 vsphere_password: "P@ssw0rd"
 validate_certs: False
+batch_size: 1
+async_timeout: 600
+retries: 300
+delay: 2
 debug: True
+ignore_errors: False
 input_file: "vms.csv"
 def_vm_template: "ubuntu-server-2004"
 def_vm_cluster: "cluster01"

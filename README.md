@@ -41,7 +41,12 @@ vars-deploy-vms.yaml contains predefined variables and default values which can 
 - vsphere_login - login to connect to vCenter Server (administrator@vsphere.local or something else).
 - vsphere_password - password to connect to vCenter Server.
 - validate_certs - set True if certificate validation is needed.
+- batch_size - number of VMs deployed simultaneously.
+- async_timeout - timeout in seconds before async deployment task considers failed.
+- retries - number of retries before the start of the next batch (if batch_size permits).
+- delay - delay in seconds between retries.
 - debug - set True if you want to get additional information during playbook execution for debugging purposes.
+- ignore_errors - continue if one ore more VMs deployment tasks failed.
 - input_file - path to the CSV file.
 - def_vm_template - default VM template to create new VMs for (this and other def_ values will be override by values from CSV file for specific VM).
 - def_vm_cluster - vSphere cluster where you want to place new VMs.

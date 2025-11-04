@@ -42,9 +42,9 @@ vars-deploy-vms.yaml contains predefined variables and default values which can 
 - vsphere_password - password to connect to vCenter Server.
 - validate_certs - set True if certificate validation is needed.
 - batch_size - number of VMs deployed simultaneously.
-- async_timeout - timeout in seconds before async deployment task considers failed.
-- retries - number of retries before the start of the next batch (if batch_size permits).
-- delay - delay in seconds between retries.
+- async_timeout - maximum time in seconds after which the virtual machine deployment task will be considered failed. Default value is 600 seconds. Increase it if VM takes more time to deploy and customize.
+- retries - number of retries before the start of the next batch (if batch_size permits). Default value is 300. Increase it if VM takes more time to deploy and customize.
+- delay - delay in seconds between retries. Default value is 2. Increase it if VM takes more time to deploy and customize.
 - debug - set True if you want to get additional information during playbook execution for debugging purposes.
 - ignore_errors - continue if one ore more VMs deployment tasks failed.
 - input_file - path to the CSV file.
